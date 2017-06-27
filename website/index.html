@@ -1,0 +1,48 @@
+<html>
+<head>
+<style>
+
+body
+{
+	font-family: sans-serif;
+	font-size: 100%;
+	margin: 10px;
+	color: #ddd;
+	background-color: #fff;
+}
+
+a { color: #fff; }
+
+img.ri
+{
+	position: absolute;
+	max-width: 80%;
+	top: 10%;
+	left: 10%;
+}
+
+img.ri:empty
+{
+	top: 50%;
+	left: 50%;
+	-webkit-transform: translate(-50%, -50%);
+	-moz-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	-o-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+}
+
+@media screen and (orientation: portrait) {
+  img.ri {
+      max-width: 90%;
+  }
+}
+
+@media screen and (orientation: landscape) {
+  img.ri {
+      max-height: 90%;
+  }
+}
+</style>
+<!-- the responsive centered image -->
+<img src="wodbot.png" class="ri" />
