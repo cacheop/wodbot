@@ -1,0 +1,25 @@
+<input id="clickMe" type="button" value="clickme" onclick="doFunction();" />
+<script>
+
+var http = new XMLHttpRequest();
+
+var url = "http://54.200.82.138:5000/model";
+var parameters = {"gen_length": 150};
+
+http.setRequestHeader("Content-type", "application/json");
+http.open("POST", url, false);
+
+http.onreadystatechange = function () {
+    if (http.readyState == 4 && http.status == 200) {
+        alert(http.responseText);
+    }
+}
+
+function doFunction() {
+	http.send(parameters);
+	
+}
+
+
+
+</script>

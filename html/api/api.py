@@ -1,13 +1,14 @@
 import numpy as np
+import random
 import tensorflow as tf
 from functools import wraps
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
+
 import helper
 
 app = Flask(__name__)
-
-gen_length = 380
-prime_word = 'shots'
+CORS(app)
 
 def get_tensors(loaded_graph):
     return loaded_graph.get_tensor_by_name("input:0"), loaded_graph.get_tensor_by_name("initial_state:0"), loaded_graph.get_tensor_by_name("final_state:0"), loaded_graph.get_tensor_by_name("probs:0")
@@ -16,11 +17,37 @@ def get_tensors(loaded_graph):
 def pick_word(probabilities, int_to_vocab):
     possibilities = []
     for ix, prob in enumerate(probabilities):
-        if prob >= .05:
+        if prob >= .1:
             possibilities.append(int_to_vocab[ix])
     rand = np.random.randint(0, len(possibilities))
 
     return str(possibilities[rand])
+
+
+def massage_results(gen_sentences, token_dict):
+    
+    wtext = ' '.join(gen_sentences)
+
+    for key, token in token_dict.items():
+        ending = ' ' if key in ['\n', '(', '"'] else ''
+        wtext = wtext.replace(' ' + token.lower(), key)
+
+    wtext = wtext.replace(' [', '[')
+    wtext = wtext.replace('[ ', '[')
+    wtext = wtext.replace(' ]', ']')
+    wtext = wtext.replace('] ', ']')
+    wtext = wtext.replace('[', '')
+    wtext = wtext.replace(']', '')
+    wtext = wtext.replace('(', ' (')
+    wtext = wtext.replace('( ', ' (')
+    wtext = wtext.replace(' )', ')')
+    wtext = wtext.replace('  ', ' ')    
+    wtext = wtext.replace('  ', ' ')    
+    wtext = wtext.replace('\n', '|')
+
+    wtext = wtext.split("|")   
+
+    return wtext
 
 
 def parse_postget(f):
@@ -34,14 +61,25 @@ def parse_postget(f):
         return f(d)
     return wrapper
 
+@app.route('/')
+def index():
+	return "wodbot rocks!"
+	
 @app.route('/model', methods=['GET', 'POST'])
 @parse_postget
 
 
-
 def apply_model(d):
+    gen_length = 30
+    if request.method == 'POST':
+        content = request.json
+        gen_length = content['gen_length']
+
     _, vocab_to_int, int_to_vocab, token_dict = helper.load_preprocess()
 
+    prime_word = random.choice(int_to_vocab)
+    print (prime_word)
+        
     seq_length, load_dir = helper.load_params()
 
     loaded_graph = tf.Graph()
@@ -57,7 +95,8 @@ def apply_model(d):
         # Sentences generation setup
         gen_sentences = [prime_word]
         prev_state = sess.run(initial_state, {input_text: np.array([[1]])})
-
+        print (gen_sentences)   
+        
         # Generate sentences
         for n in range(gen_length):
             # Dynamic Input
@@ -71,18 +110,15 @@ def apply_model(d):
 
             pred_word = pick_word(probabilities[dyn_seq_length-1], int_to_vocab)
 
-            gen_sentences.append(pred_word)
+            gen_sentences.append(pred_word) 
 
-        # Remove tokens
-        tv_script = ' '.join(gen_sentences)
-        for key, token in token_dict.items():
-            ending = ' ' if key in ['\n', '(', '"'] else ''
-            tv_script = tv_script.replace(' ' + token.lower(), key)
-        tv_script = tv_script.replace('\n ', '\n-----------------\n')
-        tv_script = tv_script.replace('( ', '(')
-
-    return jsonify(output=tv_script)
-    #return "Hello, World!"
+        data = massage_results(gen_sentences, token_dict)
+		if (len(data) > 2):
+        	wod_return = random.choice(data[1:-1])  
+		else:
+			wod_return = data[0]
+    
+    return jsonify(output=wod_return)
 
 if __name__ == '__main__':
     app.run(debug=True)
